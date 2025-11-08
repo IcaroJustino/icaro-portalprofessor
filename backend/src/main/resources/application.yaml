@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: backend
+  main:
+    allow-bean-definition-overriding: true
+  messages:
+    basename: messages
+    encoding: UTF-8
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/portal_professor
+    username: portal_admin
+    password: Str0ngPass!2025
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc.lob.non_contextual_creation: true
+        default_schema: public
+
+  jackson:
+    time-zone: America/Sao_Paulo
+    locale: pt_BR
+    date-format: yyyy-MM-dd'T'HH:mm:ss
+  web:
+    locale-resolver: fixed
+    locale: pt_BR
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# Configurações do JWT
+jwt:
+  secret: "UmaChaveBemSeguraComMaisDe32BytesParaHS256!" # mínimo 32 bytes
+  expiration-days: 7

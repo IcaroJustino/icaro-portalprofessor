@@ -1,0 +1,29 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    container_name: portalprofessor_db
+    restart: always
+    environment:
+      POSTGRES_USER: portal_admin
+      POSTGRES_PASSWORD: Str0ngPass!2025
+      POSTGRES_DB: portal_professor
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - portal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal_admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
+    name: portalprofessor_db_data
+
+networks:
+  portal-network:
+    driver: bridge
