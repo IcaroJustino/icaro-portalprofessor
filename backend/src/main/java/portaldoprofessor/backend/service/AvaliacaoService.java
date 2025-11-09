@@ -1,16 +1,16 @@
 package portaldoprofessor.backend.service;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import portaldoprofessor.backend.dto.UpdateAvaliacaoDTO;
 import portaldoprofessor.backend.entity.Avaliacao;
 import portaldoprofessor.backend.entity.Role;
 import portaldoprofessor.backend.entity.Turma;
 import portaldoprofessor.backend.repository.AvaliacaoRepository;
 import portaldoprofessor.backend.repository.TurmaRepository;
 import portaldoprofessor.backend.security.UserContextService;
-
-import java.time.LocalDateTime;
+import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -21,113 +21,113 @@ public class AvaliacaoService {
     private final TurmaRepository turmaRepository;
     private final UserContextService userContextService;
 
+    private static final String ALFANUM = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final SecureRandom random = new SecureRandom();
+
+    private String gerarCodigoUnico() {
+        String codigo;
+        do {
+            StringBuilder sb = new StringBuilder(5);
+            for (int i = 0; i < 5; i++) {
+                sb.append(ALFANUM.charAt(random.nextInt(ALFANUM.length())));
+            }
+            codigo = sb.toString();
+        } while (avaliacaoRepository.existsByCodigo(codigo));
+        return codigo;
+    }
+
+    public Avaliacao pegarAvaliacao(Long id) {
+        return avaliacaoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Avaliação não encontrada"));
+    }
+
     @Transactional
     public List<Avaliacao> criarAvaliacoes(List<Avaliacao> avaliacoes, Long turmaId) {
-        validarPermissao();
+        if (!userContextService.hasAnyRole(Role.ADMIN, Role.TEACHER)) {
+            throw new SecurityException("Acesso negado: apenas ADMIN ou PROFESSOR podem gerenciar avaliações");
+        }
 
         Turma turma = turmaRepository.findById(turmaId)
                 .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
 
-        for (Avaliacao avaliacao : avaliacoes) {
-            avaliacao.setTurma(turma);
-        }
+        List<Avaliacao> existentes = avaliacaoRepository.findByTurma(turma);
 
-        double somaTotal = turma.getAvaliacoes().stream()
-                .mapToDouble(Avaliacao::getPeso)
-                .sum() + avaliacoes.stream()
+        double somaExistente = existentes.stream()
                 .mapToDouble(Avaliacao::getPeso)
                 .sum();
 
+        double somaNovas = avaliacoes.stream()
+                .mapToDouble(Avaliacao::getPeso)
+                .sum();
+
+        double somaTotal = somaExistente + somaNovas;
+
         if (Math.abs(somaTotal - 100.0) > 0.001) {
-            throw new RuntimeException("A soma dos pesos das avaliações da turma deve ser 100% (atual: " + somaTotal + "%)");
+            throw new RuntimeException(
+                    "A soma dos pesos das avaliações da turma deve ser 100% (atual: " + somaTotal + "%)"
+            );
         }
 
-        turma.getAvaliacoes().addAll(avaliacoes);
-        turmaRepository.save(turma);
+        for (Avaliacao avaliacao : avaliacoes) {
+            avaliacao.setCodigo(gerarCodigoUnico());
+            avaliacao.setTurma(turma);
+        }
 
-        return avaliacaoRepository.saveAll(avaliacoes);
+        List<Avaliacao> salvas = avaliacaoRepository.saveAll(avaliacoes);
+
+        turmaRepository.flush();
+
+        return salvas;
     }
 
+
     @Transactional
-    public Avaliacao editarAvaliacao(Long id, Avaliacao detalhes) {
-        validarPermissao();
+    public Avaliacao editarAvaliacao(Long id, UpdateAvaliacaoDTO dto) {
+        if (!userContextService.hasAnyRole(Role.ADMIN, Role.TEACHER)) {
+            throw new SecurityException("Acesso negado: apenas ADMIN ou PROFESSOR podem gerenciar avaliações");
+        }
 
         Avaliacao avaliacao = avaliacaoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Avaliação não encontrada"));
 
-        avaliacao.setNome(detalhes.getNome());
-        avaliacao.setPeso(detalhes.getPeso());
-        avaliacao.setPrazo(detalhes.getPrazo());
-        avaliacao.setCodigo(detalhes.getCodigo());
-
-        validarSomaPesos(avaliacao.getTurma(), avaliacao, detalhes.getPeso());
+        if (dto.getNome() != null && !dto.getNome().isBlank()) {
+            avaliacao.setNome(dto.getNome());
+        }
 
         return avaliacaoRepository.save(avaliacao);
     }
 
-    @Transactional
-    public Avaliacao estenderPrazo(Long id, LocalDateTime novoPrazo) {
-        validarPermissao();
-
-        Avaliacao avaliacao = avaliacaoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Avaliação não encontrada"));
-
-        avaliacao.setPrazo(novoPrazo);
-        return avaliacaoRepository.save(avaliacao);
-    }
 
     @Transactional
     public void deletarAvaliacao(Long id) {
-        validarPermissao();
+        if (!userContextService.hasAnyRole(Role.ADMIN, Role.TEACHER)) {
+            throw new SecurityException("Acesso negado: apenas ADMIN ou PROFESSOR podem gerenciar avaliações");
+        }
 
         Avaliacao avaliacao = avaliacaoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Avaliação não encontrada"));
 
         Turma turma = avaliacao.getTurma();
+
+        List<Avaliacao> avaliacoes = new ArrayList<>(avaliacaoRepository.findByTurma(turma));
+
+        if (avaliacoes.size() <= 1) {
+            throw new RuntimeException("Não é possível remover a única avaliação da turma.");
+        }
+
+        avaliacoes.removeIf(a -> a.getId().equals(id));
+
         avaliacaoRepository.delete(avaliacao);
 
-        validarSomaPosRemocao(turma);
-    }
-
-    public List<Avaliacao> listarAvaliacoesDaTurma(Long turmaId) {
-        validarPermissao();
-
-        Turma turma = turmaRepository.findById(turmaId)
-                .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
-        return avaliacaoRepository.findByTurma(turma);
-    }
-
-    public Avaliacao pegarAvaliacao(Long id) {
-        validarPermissao();
-
-        return avaliacaoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Avaliação não encontrada"));
-    }
-
-    private void validarPermissao() {
-        if (!userContextService.hasAnyRole(Role.ADMIN, Role.TEACHER)) {
-            throw new SecurityException("Acesso negado: apenas ADMIN ou PROFESSOR podem gerenciar avaliações");
+        double novoPeso = 100.0 / avaliacoes.size();
+        for (Avaliacao restante : avaliacoes) {
+            restante.setPeso(novoPeso);
         }
+
+        avaliacaoRepository.saveAll(avaliacoes);
     }
 
-    private void validarSomaPesos(Turma turma, Avaliacao editada, double novoPeso) {
-        double soma = turma.getAvaliacoes().stream()
-                .filter(a -> !a.getId().equals(editada.getId()))
-                .mapToDouble(Avaliacao::getPeso)
-                .sum() + novoPeso;
 
-        if (Math.abs(soma - 100.0) > 0.001) {
-            throw new RuntimeException("A soma total dos pesos da turma deve ser 100% (atual: " + soma + "%)");
-        }
-    }
 
-    private void validarSomaPosRemocao(Turma turma) {
-        double soma = turma.getAvaliacoes().stream()
-                .mapToDouble(Avaliacao::getPeso)
-                .sum();
 
-        if (Math.abs(soma - 100.0) > 0.001 && soma != 0.0) {
-            throw new RuntimeException("Após remover, a soma dos pesos da turma deve continuar sendo 100% (atual: " + soma + "%)");
-        }
-    }
 }
