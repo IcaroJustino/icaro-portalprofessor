@@ -3,12 +3,8 @@ package portaldoprofessor.backend.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import portaldoprofessor.backend.dto.CreatedTurmaDTO;
-import portaldoprofessor.backend.dto.TurmaDTO;
-import portaldoprofessor.backend.dto.UpdateTurmaDTO;
-import portaldoprofessor.backend.entity.Aluno;
+import portaldoprofessor.backend.dto.*;
 import portaldoprofessor.backend.entity.Avaliacao;
-import portaldoprofessor.backend.entity.Turma;
 import portaldoprofessor.backend.service.TurmaService;
 
 import java.util.List;
@@ -44,6 +40,7 @@ public class TurmaController {
         return ResponseEntity.noContent().build();
     }
 
+
     @GetMapping("/listar")
     public ResponseEntity<List<TurmaDTO>> listarTodas() {
         return ResponseEntity.ok(turmaService.listarTodas());
@@ -55,8 +52,13 @@ public class TurmaController {
     }
 
     @GetMapping("/alunos")
-    public ResponseEntity<List<Aluno>> listarAlunosDaTurma(@RequestParam Long id) {
+    public ResponseEntity<List<AlunoDTO>> listarAlunosDaTurma(@RequestParam Long id) {
         return ResponseEntity.ok(turmaService.listarAlunosDaTurma(id));
+    }
+
+    @PostMapping("/vincularalunos")
+    public ResponseEntity<TurmaDTO> vincularAlunos(@RequestBody VincularAlunosDTO dto) {
+        return ResponseEntity.ok(turmaService.vincularAlunos(dto));
     }
 
     @GetMapping("/avaliacoes")
