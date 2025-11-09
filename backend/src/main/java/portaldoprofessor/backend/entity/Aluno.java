@@ -1,5 +1,6 @@
 package portaldoprofessor.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -10,6 +11,7 @@ import java.util.Set;
 @Table(name = "aluno", indexes = {
         @Index(columnList = "email", name = "idx_aluno_email")
 })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
