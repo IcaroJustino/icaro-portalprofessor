@@ -18,7 +18,7 @@ public class JwtUtil {
     private int expirationDays;
 
     private Key getSigningKey() {
-        byte[] keyBytes = jwtSecret.getBytes(); // chave mínima de 32 bytes para HS256
+        byte[] keyBytes = jwtSecret.getBytes();
         return Keys.hmacShaKeyFor(keyBytes);
     }
 

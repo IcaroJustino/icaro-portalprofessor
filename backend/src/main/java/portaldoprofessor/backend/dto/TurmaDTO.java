@@ -9,11 +9,10 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 public class TurmaDTO {
-
     private Long id;
     private String nome;
     private String descricao;
     private String codigo;
-    private Set<Long> alunoIds; // ids dos alunos
-    private Set<Long> avaliacaoIds; // ids das avaliações
+    private Set<Long> alunoIds;
+    private Set<Long> avaliacaoIds;
 }
