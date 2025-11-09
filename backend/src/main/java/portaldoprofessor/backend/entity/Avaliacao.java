@@ -1,5 +1,6 @@
 package portaldoprofessor.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,11 +20,9 @@ public class Avaliacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @Column(nullable = false, length = 100)
     private String nome;
 
-    // Peso em porcentagem (ex: 30 significa 30%)
     @Column(nullable = false)
     private Double peso;
 
@@ -33,8 +32,8 @@ public class Avaliacao {
     @Column(nullable = false, unique = true, length = 20)
     private String codigo;
 
-    // Cada avaliação pertence a uma turma
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "turma_id", nullable = false)
+    @JsonIgnore
     private Turma turma;
 }
