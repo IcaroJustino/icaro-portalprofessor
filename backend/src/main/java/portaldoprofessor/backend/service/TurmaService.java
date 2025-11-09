@@ -3,18 +3,20 @@ package portaldoprofessor.backend.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import portaldoprofessor.backend.entity.Aluno;
-import portaldoprofessor.backend.entity.Avaliacao;
-import portaldoprofessor.backend.entity.Turma;
-import portaldoprofessor.backend.entity.User;
+import portaldoprofessor.backend.dto.CreatedTurmaDTO;
+import portaldoprofessor.backend.dto.TurmaDTO;
+import portaldoprofessor.backend.dto.UpdateTurmaDTO;
+import portaldoprofessor.backend.entity.*;
 import portaldoprofessor.backend.exception.EntityNotFoundException;
 import portaldoprofessor.backend.exception.PasswordInvalidException;
 import portaldoprofessor.backend.repository.AlunoRepository;
 import portaldoprofessor.backend.repository.AvaliacaoRepository;
 import portaldoprofessor.backend.repository.TurmaRepository;
 import portaldoprofessor.backend.security.UserContextService;
-
+import java.security.SecureRandom;
 import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,31 +26,53 @@ public class TurmaService {
     private final AlunoRepository alunoRepository;
     private final AvaliacaoRepository avaliacaoRepository;
     private final UserContextService userContext;
+    private final UserContextService userContextService;
 
-    @Transactional
-    public Turma criarTurma(Turma turma) {
-        User professor = userContext.getLoggedUser();
 
-        if (!userContext.isProfessor() && !userContext.isAdmin()) {
-            throw new SecurityException("Apenas professores ou administradores podem criar turmas.");
+    private static final String CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    private String gerarCodigo() {
+        Random random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(5);
+        for (int i = 0; i < 5; i++) {
+            sb.append(CHARSET.charAt(random.nextInt(CHARSET.length())));
         }
-
-        turma.setProfessor(professor);
-        return turmaRepository.save(turma);
+        return sb.toString();
     }
 
     @Transactional
-    public Turma editarTurma(Long id, Turma detalhes) {
-        Turma turma = turmaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Turma não encontrada"));
+    public TurmaDTO criarTurma(CreatedTurmaDTO dto) {
+        User professor = userContextService.getLoggedUser();
 
-        validarPermissaoProfessorOuAdmin(turma);
+        String codigo;
+        do {
+            codigo = gerarCodigo();
+        } while (turmaRepository.existsByCodigo(codigo));
 
-        turma.setNome(detalhes.getNome());
-        turma.setDescricao(detalhes.getDescricao());
-        turma.setCodigo(detalhes.getCodigo());
+        Turma turma = Turma.builder()
+                .nome(dto.getNome())
+                .descricao(dto.getDescricao())
+                .codigo(codigo)
+                .professor(professor)
+                .build();
 
-        return turmaRepository.save(turma);
+        Turma salva = turmaRepository.save(turma);
+        return toDTO(salva);
+    }
+
+    public TurmaDTO editarTurma(Long id, UpdateTurmaDTO dto) {
+        Turma turma = pegarTurmaEntity(id);
+
+        if (dto.getNome() != null && !dto.getNome().isBlank()) {
+            turma.setNome(dto.getNome());
+        }
+
+        if (dto.getDescricao() != null) {
+            turma.setDescricao(dto.getDescricao());
+        }
+
+        turmaRepository.save(turma);
+        return toDTO(turma);
     }
 
     @Transactional
@@ -60,8 +84,19 @@ public class TurmaService {
         turmaRepository.delete(turma);
     }
 
-    public List<Turma> listarTodas() {
-        return turmaRepository.findAll();
+    public List<TurmaDTO> listarTodas() {
+        List<Turma> turmas = turmaRepository.findAll();
+
+        // força inicialização do professor para evitar proxy lazy
+        turmas.forEach(t -> {
+            if (t.getProfessor() != null) {
+                t.getProfessor().getName();
+            }
+        });
+
+        return turmas.stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
 
@@ -79,18 +114,26 @@ public class TurmaService {
         return turmaRepository.findByProfessor(user);
     }
 
-    public Turma pegarTurma(Long id) {
-        return turmaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Turma não encontrada"));
+    public TurmaDTO detalharTurma(Long id) {
+        Turma turma = turmaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
+
+        return toDTO(turma);
     }
 
+    public Turma pegarTurmaEntity(Long id) {
+        return turmaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
+    }
+
+
     public List<Aluno> listarAlunosDaTurma(Long turmaId) {
-        Turma turma = pegarTurma(turmaId);
+        Turma turma = pegarTurmaEntity(turmaId);
         return List.copyOf(turma.getAlunos());
     }
 
     public List<Avaliacao> listarAvaliacoesDaTurma(Long turmaId) {
-        Turma turma = pegarTurma(turmaId);
+        Turma turma = pegarTurmaEntity(turmaId);
         return avaliacaoRepository.findByTurma(turma);
     }
 
@@ -110,5 +153,16 @@ public class TurmaService {
         if (userContext.isProfessor() && turma.getProfessor().getId().equals(user.getId())) return;
 
         throw new SecurityException("Você não tem permissão para modificar esta turma.");
+    }
+
+    private TurmaDTO toDTO(Turma turma) {
+        return TurmaDTO.builder()
+                .id(turma.getId())
+                .nome(turma.getNome())
+                .descricao(turma.getDescricao())
+                .codigo(turma.getCodigo())
+                .professorNome(turma.getProfessor().getName())
+                .createdAt(turma.getCreatedAt())
+                .build();
     }
 }

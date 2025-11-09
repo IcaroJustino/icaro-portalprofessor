@@ -1,8 +1,7 @@
 package portaldoprofessor.backend.dto;
 
 import lombok.*;
-
-import java.util.Set;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -13,6 +12,6 @@ public class TurmaDTO {
     private String nome;
     private String descricao;
     private String codigo;
-    private Set<Long> alunoIds;
-    private Set<Long> avaliacaoIds;
+    private String professorNome;
+    private LocalDateTime createdAt;
 }
