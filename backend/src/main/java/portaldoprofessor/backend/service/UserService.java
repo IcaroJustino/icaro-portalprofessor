@@ -12,11 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import portaldoprofessor.backend.security.UserContextService;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -114,6 +112,11 @@ public class UserService {
         if (!userRepository.existsById(id)) {
             throw new EntityNotFoundException("Usuário não encontrado para exclusão.");
         }
+        if (
+                userContextService.getLoggedUser().getId().equals(id)
+        ) {
+            throw new UsernameUniqueViolationException("Usuario não pode se deletar");
+        }
         userRepository.deleteById(id);
     }
 
@@ -122,8 +125,14 @@ public class UserService {
             throw new RuntimeException("Acesso negado: apenas ADMIN ou PROFESSOR podem desativar usuários");
         }
 
+
+
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        if(userContextService.getLoggedUser().getId().equals(id)) {
+            throw new UsernameUniqueViolationException("Usuario não pode se deletar");
+        }
         user.setActive(active);
         userRepository.save(user);
         return toDTO(user);

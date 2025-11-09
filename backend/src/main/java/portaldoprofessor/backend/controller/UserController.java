@@ -1,6 +1,5 @@
 package portaldoprofessor.backend.controller;
 
-import portaldoprofessor.backend.dto.CreateUserDTO;
 import portaldoprofessor.backend.dto.UpdateUserDTO;
 import portaldoprofessor.backend.dto.UserDTO;
 import portaldoprofessor.backend.exception.EntityNotFoundException;
@@ -9,8 +8,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -20,13 +17,11 @@ import java.util.Map;
 public class UserController {
     private final UserService userService;
 
-    // 🔹 Listar todos os Funcionarios
     @GetMapping
     public ResponseEntity<List<UserDTO>> listAll() {
         return ResponseEntity.ok(userService.findAll());
     }
 
-    // 🔹 Buscar por ID
     @GetMapping("/byid")
     public ResponseEntity<UserDTO> getById(@RequestParam Long id) {
         return userService.findById(id)
@@ -34,7 +29,6 @@ public class UserController {
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
     }
 
-    // 🔹 Atualizar
     @PutMapping
     public ResponseEntity<UserDTO> update(
             @RequestParam Long id,
@@ -44,14 +38,12 @@ public class UserController {
         return ResponseEntity.ok(updated);
     }
 
-    // 🔹 Deletar
     @DeleteMapping
     public ResponseEntity<Void> delete(@RequestParam Long id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    // 🔹 Desativar/Reativar
     @PatchMapping("/deactivate")
     public ResponseEntity<UserDTO> deactivateUser(
             @RequestParam Long id,

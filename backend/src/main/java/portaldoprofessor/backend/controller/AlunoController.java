@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import portaldoprofessor.backend.dto.CreatedAlunoDTO;
 import portaldoprofessor.backend.entity.Aluno;
 import portaldoprofessor.backend.service.AlunoService;
 
@@ -17,7 +18,7 @@ public class AlunoController {
     private final AlunoService alunoService;
 
     @PostMapping
-    public ResponseEntity<Aluno> criarAluno(@RequestBody Aluno aluno) {
+    public ResponseEntity<Aluno> criarAluno(@RequestBody CreatedAlunoDTO aluno) {
         return ResponseEntity.ok(alunoService.criarAluno(aluno));
     }
 

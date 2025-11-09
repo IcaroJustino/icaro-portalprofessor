@@ -17,5 +17,5 @@ public class AlunoDTO {
     private String matricula;
     private boolean active;
     private LocalDateTime createdAt;
-    private Set<Long> turmaIds; // apenas ids das turmas vinculadas
+    private Set<Long> turmaIds;
 }

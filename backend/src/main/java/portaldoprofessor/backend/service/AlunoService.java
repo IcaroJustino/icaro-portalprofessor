@@ -3,10 +3,12 @@ package portaldoprofessor.backend.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import portaldoprofessor.backend.dto.CreatedAlunoDTO;
 import portaldoprofessor.backend.entity.Aluno;
 import portaldoprofessor.backend.entity.Turma;
 import portaldoprofessor.backend.repository.AlunoRepository;
 import portaldoprofessor.backend.repository.TurmaRepository;
+import portaldoprofessor.backend.security.UserContextService;
 
 import java.util.List;
 
@@ -16,17 +18,33 @@ public class AlunoService {
 
     private final AlunoRepository alunoRepository;
     private final TurmaRepository turmaRepository;
+    private final UserContextService userContext;
 
-    public Aluno criarAluno(Aluno aluno) {
+    public Aluno criarAluno(CreatedAlunoDTO dto) {
+        var user = userContext.getLoggedUser();
+
+        Aluno aluno = Aluno.builder()
+                .name(dto.getName())
+                .email(dto.getEmail())
+                .matricula(dto.getMatricula())
+                .active(true)
+                .createdBy(user)
+                .build();
+
         return alunoRepository.save(aluno);
     }
 
     public Aluno editarAluno(Long id, Aluno alunoDetalhes) {
+        var user = userContext.getLoggedUser();
+
         Aluno aluno = alunoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
+
         aluno.setName(alunoDetalhes.getName());
         aluno.setEmail(alunoDetalhes.getEmail());
         aluno.setMatricula(alunoDetalhes.getMatricula());
+        aluno.setUpdatedBy(user);
+
         return alunoRepository.save(aluno);
     }
 
@@ -56,11 +74,18 @@ public class AlunoService {
         return aluno;
     }
 
-    // Desativar login do aluno (somente admin pode fazer)
+
     public Aluno desativarAluno(Long id) {
+        if (!userContext.isAdmin()) {
+            throw new SecurityException("Apenas administradores podem desativar alunos.");
+        }
+
         Aluno aluno = alunoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
+
         aluno.setActive(false);
-        return aluno;
+        aluno.setUpdatedBy(userContext.getLoggedUser());
+
+        return alunoRepository.save(aluno);
     }
 }

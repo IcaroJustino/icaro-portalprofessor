@@ -17,38 +17,47 @@ public class AvaliacaoController {
 
     private final AvaliacaoService avaliacaoService;
 
-    @PostMapping("/turma/{turmaId}")
+    @PostMapping("/criar")
     @PreAuthorize("hasAnyRole('ADMIN','PROFESSOR')")
-    public ResponseEntity<Avaliacao> criarAvaliacao(@RequestBody Avaliacao avaliacao, @PathVariable Long turmaId) {
-        return ResponseEntity.ok(avaliacaoService.criarAvaliacao(avaliacao, turmaId));
+    public ResponseEntity<List<Avaliacao>> criarAvaliacoes(
+            @RequestBody List<Avaliacao> avaliacoes,
+            @RequestParam Long turmaId) {
+
+        return ResponseEntity.ok(avaliacaoService.criarAvaliacoes(avaliacoes, turmaId));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/editar")
     @PreAuthorize("hasAnyRole('ADMIN','PROFESSOR')")
-    public ResponseEntity<Avaliacao> editarAvaliacao(@PathVariable Long id, @RequestBody Avaliacao avaliacao) {
+    public ResponseEntity<Avaliacao> editarAvaliacao(
+            @RequestParam Long id,
+            @RequestBody Avaliacao avaliacao) {
+
         return ResponseEntity.ok(avaliacaoService.editarAvaliacao(id, avaliacao));
     }
 
-    @PostMapping("/{id}/estender-prazo")
+    @PostMapping("/estender-prazo")
     @PreAuthorize("hasAnyRole('ADMIN','PROFESSOR')")
-    public ResponseEntity<Avaliacao> estenderPrazo(@PathVariable Long id, @RequestParam LocalDateTime novoPrazo) {
+    public ResponseEntity<Avaliacao> estenderPrazo(
+            @RequestParam Long id,
+            @RequestParam LocalDateTime novoPrazo) {
+
         return ResponseEntity.ok(avaliacaoService.estenderPrazo(id, novoPrazo));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/deletar")
     @PreAuthorize("hasAnyRole('ADMIN','PROFESSOR')")
-    public ResponseEntity<Void> deletarAvaliacao(@PathVariable Long id) {
+    public ResponseEntity<Void> deletarAvaliacao(@RequestParam Long id) {
         avaliacaoService.deletarAvaliacao(id);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Avaliacao> pegarAvaliacao(@PathVariable Long id) {
+    @GetMapping("/detalhes")
+    public ResponseEntity<Avaliacao> pegarAvaliacao(@RequestParam Long id) {
         return ResponseEntity.ok(avaliacaoService.pegarAvaliacao(id));
     }
 
-    @GetMapping("/turma/{turmaId}")
-    public ResponseEntity<List<Avaliacao>> listarAvaliacoesDaTurma(@PathVariable Long turmaId) {
+    @GetMapping("/turma")
+    public ResponseEntity<List<Avaliacao>> listarAvaliacoesDaTurma(@RequestParam Long turmaId) {
         return ResponseEntity.ok(avaliacaoService.listarAvaliacoesDaTurma(turmaId));
     }
 }

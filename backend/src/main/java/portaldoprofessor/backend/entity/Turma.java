@@ -3,6 +3,7 @@ package portaldoprofessor.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -33,12 +34,25 @@ public class Turma {
     @OneToMany(mappedBy = "turma", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Avaliacao> avaliacoes = new HashSet<>();
 
-    // Método utilitário para somar os pesos das avaliações
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "professor_id", nullable = false)
+    private User professor;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
+
     public double somaPesos() {
         return avaliacoes.stream().mapToDouble(Avaliacao::getPeso).sum();
     }
 
     public boolean validarPesoTotal() {
-        return Math.abs(somaPesos() - 100.0) < 0.001; // evita problemas de ponto flutuante
+        return Math.abs(somaPesos() - 100.0) < 0.001;
     }
 }

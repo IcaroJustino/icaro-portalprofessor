@@ -40,7 +40,6 @@ public class User {
     private LocalDateTime createdAt = LocalDateTime.now();
 
 
-    // 👇 garante que o campo seja setado antes do insert no banco
     @PrePersist
     public void prePersist() {
         if (createdAt == null) {

@@ -2,7 +2,6 @@ package portaldoprofessor.backend.dto;
 
 import portaldoprofessor.backend.entity.Role;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Data

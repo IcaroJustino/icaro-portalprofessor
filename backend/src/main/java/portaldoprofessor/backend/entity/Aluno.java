@@ -23,7 +23,7 @@ public class Aluno {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false,unique = true)
+    @Column(nullable = false, unique = true)
     private String matricula;
 
     @Column(nullable = false, unique = true, length = 100)
@@ -32,10 +32,20 @@ public class Aluno {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @Column(nullable = false)
     private boolean active = true;
 
-    // Relacionamento N para N com Turma
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private User updatedBy;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "aluno_turma",
@@ -50,5 +60,10 @@ public class Aluno {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

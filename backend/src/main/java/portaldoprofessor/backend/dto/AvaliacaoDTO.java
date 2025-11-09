@@ -15,5 +15,5 @@ public class AvaliacaoDTO {
     private double peso;
     private String codigo;
     private LocalDateTime prazo;
-    private Long turmaId; // turma vinculada
+    private Long turmaId;
 }

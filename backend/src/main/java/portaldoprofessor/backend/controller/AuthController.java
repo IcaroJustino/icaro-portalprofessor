@@ -22,7 +22,6 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
-    // Registro
     @PostMapping("/register")
     public ResponseEntity<UserDTO> register(@Valid @RequestBody CreateUserDTO createUserDTO) {
         UserDTO newUser = userService.create(createUserDTO);
