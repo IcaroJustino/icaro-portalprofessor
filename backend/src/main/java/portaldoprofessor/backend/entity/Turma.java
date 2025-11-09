@@ -9,7 +9,8 @@ import java.util.Set;
 
 @Entity
 @Table(name = "turma")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -28,7 +29,7 @@ public class Turma {
     @Column(nullable = false, unique = true, length = 20)
     private String codigo;
 
-    @ManyToMany(mappedBy = "turmas")
+    @ManyToMany(mappedBy = "turmas", fetch = FetchType.LAZY)
     private Set<Aluno> alunos = new HashSet<>();
 
     @OneToMany(mappedBy = "turma", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -43,9 +44,7 @@ public class Turma {
 
     @PrePersist
     public void prePersist() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
+        if (createdAt == null) createdAt = LocalDateTime.now();
     }
 
     public double somaPesos() {
@@ -54,5 +53,36 @@ public class Turma {
 
     public boolean validarPesoTotal() {
         return Math.abs(somaPesos() - 100.0) < 0.001;
+    }
+
+    public void removerReferencias() {
+        Set<Aluno> copiaAlunos = new HashSet<>(alunos);
+        Set<Avaliacao> copiaAvaliacoes = new HashSet<>(avaliacoes);
+
+        for (Aluno aluno : copiaAlunos) {
+            if (aluno.getTurmas() != null) {
+                aluno.getTurmas().remove(this);
+            }
+        }
+        alunos.clear();
+
+        for (Avaliacao avaliacao : copiaAvaliacoes) {
+            if (avaliacao.getTurma() != null && avaliacao.getTurma().equals(this)) {
+                avaliacao.setTurma(null);
+            }
+        }
+        avaliacoes.clear();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Turma turma)) return false;
+        return id != null && id.equals(turma.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

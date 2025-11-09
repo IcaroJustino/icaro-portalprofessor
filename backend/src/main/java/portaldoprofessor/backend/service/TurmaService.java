@@ -3,21 +3,15 @@ package portaldoprofessor.backend.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import portaldoprofessor.backend.dto.CreatedTurmaDTO;
-import portaldoprofessor.backend.dto.TurmaDTO;
-import portaldoprofessor.backend.dto.UpdateTurmaDTO;
+import portaldoprofessor.backend.dto.*;
 import portaldoprofessor.backend.entity.*;
 import portaldoprofessor.backend.exception.EntityNotFoundException;
-import portaldoprofessor.backend.exception.PasswordInvalidException;
 import portaldoprofessor.backend.repository.AlunoRepository;
 import portaldoprofessor.backend.repository.AvaliacaoRepository;
 import portaldoprofessor.backend.repository.TurmaRepository;
-import portaldoprofessor.backend.repository.UserRepository;
 import portaldoprofessor.backend.security.UserContextService;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,7 +26,6 @@ public class TurmaService {
 
 
     private static final String CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private final UserRepository userRepository;
 
     private String gerarCodigo() {
         Random random = new SecureRandom();
@@ -79,18 +72,24 @@ public class TurmaService {
     }
 
     @Transactional
-    public void deletarTurma(Long id) {
-        Turma turma = turmaRepository.findById(id)
+    public void deletarTurma(Long turmaId) {
+        Turma turma = turmaRepository.findById(turmaId)
                 .orElseThrow(() -> new EntityNotFoundException("Turma não encontrada"));
 
-        validarPermissaoProfessorOuAdmin(turma);
+        turma.removerReferencias();
+
         turmaRepository.delete(turma);
     }
+
+
+
+
+
+
 
     public List<TurmaDTO> listarTodas() {
         List<Turma> turmas = turmaRepository.findAll();
 
-        // força inicialização do professor para evitar proxy lazy
         turmas.forEach(t -> {
             if (t.getProfessor() != null) {
                 t.getProfessor().getName();
@@ -112,7 +111,6 @@ public class TurmaService {
         if(!userContext.getLoggedUser().getId().equals(professorId)){
             throw new SecurityException("Acesso negado para acessar uma professor.");
         }
-        User professor = userRepository.findById(professorId).stream().findFirst().orElseThrow();
 
         List<TurmaDTO> minhasTurmas  = new ArrayList<>();
         List<Turma> turmasGerais = turmaRepository.findByProfessor(user);
@@ -138,23 +136,30 @@ public class TurmaService {
     }
 
 
-    public List<Aluno> listarAlunosDaTurma(Long turmaId) {
+    @Transactional(readOnly = true)
+    public List<AlunoDTO> listarAlunosDaTurma(Long turmaId) {
         Turma turma = pegarTurmaEntity(turmaId);
-        return List.copyOf(turma.getAlunos());
+
+        return turma.getAlunos().stream()
+                .map(aluno -> AlunoDTO.builder()
+                        .id(aluno.getId())
+                        .name(aluno.getName())
+                        .email(aluno.getEmail())
+                        .matricula(aluno.getMatricula())
+                        .active(aluno.isActive())
+                        .createdAt(aluno.getCreatedAt())
+                        .turmaIds(aluno.getTurmas().stream()
+                                .map(Turma::getId)
+                                .collect(Collectors.toSet()))
+                        .build())
+                .toList();
     }
+
+
 
     public List<Avaliacao> listarAvaliacoesDaTurma(Long turmaId) {
         Turma turma = pegarTurmaEntity(turmaId);
         return avaliacaoRepository.findByTurma(turma);
-    }
-
-    public void validarPesoAvaliacoes(Turma turma) {
-        double totalPeso = turma.getAvaliacoes().stream()
-                .mapToDouble(Avaliacao::getPeso)
-                .sum();
-        if (Math.abs(totalPeso - 100) > 0.001) {
-            throw new PasswordInvalidException("A soma dos pesos das avaliações deve ser 100%");
-        }
     }
 
     private void validarPermissaoProfessorOuAdmin(Turma turma) {
@@ -165,6 +170,35 @@ public class TurmaService {
 
         throw new SecurityException("Você não tem permissão para modificar esta turma.");
     }
+
+    @Transactional
+    public TurmaDTO vincularAlunos(VincularAlunosDTO dto) {
+        Turma turma = turmaRepository.findById(dto.getTurmaId())
+                .orElseThrow(() -> new RuntimeException("Turma não encontrada"));
+
+        validarPermissaoProfessorOuAdmin(turma);
+
+        List<Aluno> alunos = alunoRepository.findAllById(dto.getAlunosIds());
+        if (alunos.isEmpty()) {
+            throw new RuntimeException("Nenhum aluno encontrado para os IDs informados.");
+        }
+
+        Set<Aluno> alunosParaAdicionar = alunos.stream()
+                .filter(aluno -> !turma.getAlunos().contains(aluno))
+                .collect(Collectors.toSet());
+
+        for (Aluno aluno : alunosParaAdicionar) {
+            turma.getAlunos().add(aluno);
+            aluno.getTurmas().add(turma);
+        }
+
+        turmaRepository.save(turma);
+        alunoRepository.saveAll(alunosParaAdicionar);
+
+        return toDTO(turma);
+    }
+
+
 
     private TurmaDTO toDTO(Turma turma) {
         return TurmaDTO.builder()
