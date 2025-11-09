@@ -12,8 +12,10 @@ import portaldoprofessor.backend.exception.PasswordInvalidException;
 import portaldoprofessor.backend.repository.AlunoRepository;
 import portaldoprofessor.backend.repository.AvaliacaoRepository;
 import portaldoprofessor.backend.repository.TurmaRepository;
+import portaldoprofessor.backend.repository.UserRepository;
 import portaldoprofessor.backend.security.UserContextService;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -30,6 +32,7 @@ public class TurmaService {
 
 
     private static final String CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private final UserRepository userRepository;
 
     private String gerarCodigo() {
         Random random = new SecureRandom();
@@ -100,18 +103,26 @@ public class TurmaService {
     }
 
 
-    public List<Turma> listarTurmasDoProfessor() {
+    public List<TurmaDTO> listarTurmasDoProfessor(Long professorId) {
         var user = userContext.getLoggedUser();
 
-        if (!userContext.isProfessor() && !userContext.isAdmin()) {
+        if ((!userContext.isProfessor() && !userContext.isAdmin())) {
             throw new SecurityException("Apenas professores ou administradores podem visualizar turmas do professor.");
         }
-
-        if (userContext.isAdmin()) {
-            return turmaRepository.findAll();
+        if(!userContext.getLoggedUser().getId().equals(professorId)){
+            throw new SecurityException("Acesso negado para acessar uma professor.");
         }
+        User professor = userRepository.findById(professorId).stream().findFirst().orElseThrow();
 
-        return turmaRepository.findByProfessor(user);
+        List<TurmaDTO> minhasTurmas  = new ArrayList<>();
+        List<Turma> turmasGerais = turmaRepository.findByProfessor(user);
+        turmasGerais.forEach(t -> {
+            if (t.getProfessor() != null) {
+                minhasTurmas.add(toDTO(t));
+
+            }
+        });
+        return minhasTurmas;
     }
 
     public TurmaDTO detalharTurma(Long id) {

@@ -25,6 +25,11 @@ public class TurmaController {
         return ResponseEntity.ok(turmaService.criarTurma(dto));
     }
 
+    @GetMapping("/getminhasturmas")
+    public ResponseEntity<List<TurmaDTO>> getMinhasTurmas( @RequestParam Long idProfessor) {
+        return ResponseEntity.ok(turmaService.listarTurmasDoProfessor(idProfessor));
+    }
+
     @PutMapping
     public ResponseEntity<TurmaDTO> editarTurma(
             @RequestParam Long id,
