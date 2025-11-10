@@ -24,13 +24,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     localStorage.getItem("token")
   );
 
-  const login = (newToken: string) => {
-    localStorage.setItem("token", newToken);
-    setToken(newToken);
+  // LOGIN: armazena o JWT
+  const login = (jwtToken: string) => {
+    localStorage.setItem("token", jwtToken);
+    setToken(jwtToken);
     toast.success("Login realizado com sucesso!");
     navigate("/dashboard");
   };
 
+  // LOGOUT: remove JWT
   const logout = () => {
     localStorage.removeItem("token");
     setToken(null);

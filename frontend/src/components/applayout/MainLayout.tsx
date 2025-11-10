@@ -7,7 +7,7 @@ export default function MainLayout() {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="grow bg-gray-50 p-6">
-        <Outlet /> {/* ← as páginas filhas são injetadas aqui */}
+        <Outlet />
       </main>
       <Footer />
     </div>

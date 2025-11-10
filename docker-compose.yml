@@ -1,0 +1,64 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: portalprofessor_db
+    restart: always
+    environment:
+      POSTGRES_USER: portal_admin
+      POSTGRES_PASSWORD: Str0ngPass!2025
+      POSTGRES_DB: portal_professor
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - portal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal_admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: portalprofessor_backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/portal_professor
+      SPRING_DATASOURCE_USERNAME: portal_admin
+      SPRING_DATASOURCE_PASSWORD: Str0ngPass!2025
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - portal-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: portalprofessor_frontend
+    restart: always
+    ports:
+      - "3000:5173"
+    environment:
+      VITE_API_URL: http://localhost:8080
+    depends_on:
+      - backend
+    networks:
+      - portal-network
+
+volumes:
+  db_data:
+    name: portalprofessor_db_data
+
+networks:
+  portal-network:
+    driver: bridge

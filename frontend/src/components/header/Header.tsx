@@ -25,7 +25,6 @@ export default function Header() {
       }}
     >
       <Toolbar sx={{ justifyContent: "space-between" }}>
-        {/* Logo / Nome do Portal */}
         <Typography
           variant="h6"
           fontWeight={700}
@@ -38,7 +37,6 @@ export default function Header() {
           Portal do Professor
         </Typography>
 
-        {/* Menu de navegação */}
         {isAuthenticated && (
           <Box sx={{ display: "flex", gap: 2 }}>
             {menuItems.map((item) => (
@@ -61,7 +59,6 @@ export default function Header() {
           </Box>
         )}
 
-        {/* Botão de Logout */}
         {isAuthenticated && (
           <Button
             color="inherit"

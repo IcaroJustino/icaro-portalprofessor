@@ -15,7 +15,6 @@ export default function AppRoutes() {
 
   return (
     <Routes>
-      {/* Redireciona login/cadastro se já estiver logado */}
       <Route
         path="/login"
         element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />}
@@ -25,7 +24,6 @@ export default function AppRoutes() {
         element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />}
       />
 
-      {/* Rotas protegidas */}
       <Route
         path="/"
         element={
@@ -41,7 +39,6 @@ export default function AppRoutes() {
         <Route path="avaliacoes" element={<Avaliacoes />} />
       </Route>
 
-      {/* Página 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

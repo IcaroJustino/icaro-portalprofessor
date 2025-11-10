@@ -10,6 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import api from "../api/api";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -18,7 +19,6 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
 
-  // 🚀 Redirecionar se já estiver logado
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/dashboard");
@@ -30,10 +30,26 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(form.email, form.password);
-      navigate("/dashboard"); // 🔥 redireciona logo após login
-    } catch (error) {
-      toast.error("Falha ao realizar login. Verifique suas credenciais.");
+      const response = await api.post("/auth/login", {
+        email: form.email,
+        password: form.password,
+      });
+
+      const jwtToken = response.data;
+      if (!jwtToken) {
+        toast.error("Não foi possível obter o token do servidor.");
+        setLoading(false);
+        return;
+      }
+
+      login(jwtToken);
+      navigate("/dashboard");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(
+        err.response?.data?.message ||
+          "Falha ao realizar login. Verifique suas credenciais."
+      );
     } finally {
       setLoading(false);
     }

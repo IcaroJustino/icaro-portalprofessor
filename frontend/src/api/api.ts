@@ -2,10 +2,10 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
-  withCredentials: false, // mantenha false se o backend não usa cookies
+  withCredentials: false,
 });
 
-// interceptor opcional — injeta token se existir
+// injeta token jwt  se existir em rotas futuras
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
